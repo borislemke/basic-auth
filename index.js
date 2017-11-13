@@ -13,7 +13,7 @@
  * @private
  */
 
-var Buffer = require('safe-buffer').Buffer
+const Buffer = require('safe-buffer').Buffer
 
 /**
  * Module exports.
@@ -32,18 +32,7 @@ module.exports.parse = parse
  * @private
  */
 
-var CREDENTIALS_REGEXP = /^ *(?:[Bb][Aa][Ss][Ii][Cc]) +([A-Za-z0-9._~+/-]+=*) *$/
-
-/**
- * RegExp for basic auth user/pass
- *
- * user-pass   = userid ":" password
- * userid      = *<TEXT excluding ":">
- * password    = *TEXT
- * @private
- */
-
-var USER_PASS_REGEXP = /^([^:]*):(.*)$/
+const CREDENTIALS_REGEXP = /^ *(?:[Bb][Aa][Ss][Ii][Cc]) +([A-Za-z0-9._~+/-]+=*) *$/
 
 /**
  * Parse the Authorization header field of a request.
@@ -63,7 +52,7 @@ function auth (req) {
   }
 
   // get header
-  var header = getAuthorization(req)
+  const header = getAuthorization(req)
 
   // parse header
   return parse(header)
@@ -105,21 +94,31 @@ function parse (string) {
   }
 
   // parse header
-  var match = CREDENTIALS_REGEXP.exec(string)
+  const match = CREDENTIALS_REGEXP.exec(string)
 
   if (!match) {
     return undefined
   }
 
   // decode user pass
-  var userPass = USER_PASS_REGEXP.exec(decodeBase64(match[1]))
+  const userPass = decodeBase64(match[1])
 
-  if (!userPass) {
-    return undefined
+  let username
+
+  let password
+
+  if (userPass.includes(':')) {
+    [username, ...password] = userPass.split(':')
+    // Ensure if password has a semicolon in it, it is getting inserted back into the password string
+    // E.g foo:ba:rr
+    // username => foo, password => ba:rr
+    password = password.join(':')
+  } else {
+    username = userPass
   }
 
   // return credentials object
-  return new Credentials(userPass[1], userPass[2])
+  return new Credentials(username, password)
 }
 
 /**
